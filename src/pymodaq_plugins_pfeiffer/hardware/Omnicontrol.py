@@ -160,12 +160,9 @@ def parse_response(raw: bytes) -> tuple[int, int, str]:
     """Validate a reply and return (address, parameter_number, data_field)."""
     if not raw:
         raise PfeifferError("no response (timeout) - check wiring, address, baud rate")
-    text = raw.rstrip(b"\b\n").decode("ascii", errors="replace")
-    if len(text) < 13:
-        raise PfeifferError(f"reply too short: {text!r}")
-    
-    received_cksum = text[-4:]
-    body = text[:-4]
+    text = raw.rstrip(b"\r\n").decode("ascii", errors="replace")
+    received_cksum = text[-3:]
+    body = text[:-3]
 
     if int(_checksum(body)) != int(received_cksum):
         raise PfeifferError(f"checksum mismatch in reply: {text!r}")
