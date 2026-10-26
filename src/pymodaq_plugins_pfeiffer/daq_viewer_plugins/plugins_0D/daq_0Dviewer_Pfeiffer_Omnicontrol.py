@@ -7,7 +7,7 @@ from pymodaq_gui.parameter import Parameter
 from pymodaq.control_modules.viewer_utility_classes import DAQ_Viewer_base, comon_parameters, main
 from pymodaq.utils.data import DataFromPlugins
 
-from pymodaq_plugins_pfeiffer.hardware.Omnicontrol import Omnicontrol
+from pymodaq_plugins_pfeiffer.hardware.omnicontrol import Omnicontrol
 from serial.tools import list_ports
 
 def get_com_ports() -> list[str]:
