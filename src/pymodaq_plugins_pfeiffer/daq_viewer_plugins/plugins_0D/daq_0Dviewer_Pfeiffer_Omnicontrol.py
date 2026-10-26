@@ -7,7 +7,7 @@ from pymodaq_gui.parameter import Parameter
 from pymodaq.control_modules.viewer_utility_classes import DAQ_Viewer_base, comon_parameters, main
 from pymodaq.utils.data import DataFromPlugins
 
-from pymodaq_plugins_pfeiffer.hardware.omnicontrol import Omnicontrol
+from pymodaq_plugins_pfeiffer.hardware.Omnicontrol import Omnicontrol
 from serial.tools import list_ports
 
 def get_com_ports() -> list[str]:
@@ -29,8 +29,17 @@ class DAQ_0DViewer_Pfeiffer_Omnicontrol(DAQ_Viewer_base):
 
     """
     params = comon_parameters+[
-        {'title': 'COM port :', 'name': 'com_port', 'type': 'list', 'limits': get_com_ports()}
+        {'title': 'COM port :', 'name': 'com_port', 'type': 'list', 'limits': get_com_ports()},
+        {'title': 'Channel 1', 'name': 'ch_1', 'type': 'bool', 'value':True},
+        {'title': 'Channel 2', 'name': 'ch_2', 'type': 'bool', 'value':True},
         ]
+
+    def _active_channels(self):
+        """Names of the currently checked channel booleans, in tree order."""
+        return [ch.name()
+            for ch in self.settings.children()
+            if ch.name().startswith('ch_') and ch.value()]
+
 
     def ini_attributes(self):
         self.controller: Omnicontrol = None
@@ -42,17 +51,26 @@ class DAQ_0DViewer_Pfeiffer_Omnicontrol(DAQ_Viewer_base):
         self.settings.child('com_port').setLimits(get_com_ports())
         if self.is_master:
             self.port=self.settings.child('com_port').value()
+            self.port="COM9"
             self.controller = Omnicontrol(self.port)
             initialized = True
         else:
             self.controller = controller
             initialized = True
 
+        self.pressure_data=[np.array([0]) for ch in self._active_channels()]
+        label=[]
+        for ch in self._active_channels():
+            if ch == 'ch_1':
+                label.append('Channel 1')
+            elif ch == 'ch_2':
+                label.append('Channel 2')
         self.dte_signal_temp.emit(DataToExport(name='OmniControl',
                                                data=[DataFromPlugins(name='Pressure',
-                                                                    data=[np.array([0])],
+                                                                    data=self.pressure_data,
                                                                     dim='Data0D',
-                                                                    labels=[''])]))
+                                                                    labels=label)]))
+        # labels = ['Channel 1', 'Channel 2'])]))
 
         info = self.controller.read_name()  # lève PfeifferError si pas de réponse
         return info, initialized
@@ -74,17 +92,30 @@ class DAQ_0DViewer_Pfeiffer_Omnicontrol(DAQ_Viewer_base):
         kwargs: dict
             others optionals arguments
         """
+        pressure_data=[]
         try:
-            pressure = self.controller.read_pressure()
+            for ch in self._active_channels():
+                if ch == 'ch_1':
+                    pressure_data.append(np.array([self.controller.read_pressure(122)]))
+                elif ch == 'ch_2':
+                    pressure_data.append(np.array([self.controller.read_pressure(132)]))
         except Exception as e:
             self.emit_status(ThreadCommand('Update_Status', [str(e), 'log']))
             return
+
+        label=[]
+        for ch in self._active_channels():
+            if ch == 'ch_1':
+                label.append('Channel 1')
+            elif ch == 'ch_2':
+                label.append('Channel 2')
+
         self.dte_signal.emit(DataToExport(
             name='OmniControl',
             data=[DataFromPlugins(name='Pressure',
-                                  data=[np.array([pressure])],
+                                  data=pressure_data,
                                   dim='Data0D',
-                                  labels=['Pressure [mbar]'])]))
+                                  labels=label)]))
 
     def stop(self):
         """Stop the current grab hardware wise if necessary"""

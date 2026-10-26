@@ -115,3 +115,4 @@ venv.bak/
 *yacctab.py
 *lextab.py
 STATUS_AI_DEV.md
+/src/pymodaq_plugins_pfeiffer/hardware/omnicontrol_monitoring_app.py
