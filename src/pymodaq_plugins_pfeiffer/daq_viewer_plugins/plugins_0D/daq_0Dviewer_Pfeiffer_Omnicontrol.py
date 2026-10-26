@@ -8,6 +8,11 @@ from pymodaq.control_modules.viewer_utility_classes import DAQ_Viewer_base, como
 from pymodaq.utils.data import DataFromPlugins
 
 from pymodaq_plugins_pfeiffer.hardware.omnicontrol import Omnicontrol
+from serial.tools import list_ports
+
+def get_com_ports() -> list[str]:
+    """Détecte les ports COM connectés et les renvoie sous forme de liste de strings."""
+    return [port.device for port in list_ports.comports()]
 
 class DAQ_0DViewer_Pfeiffer_Omnicontrol(DAQ_Viewer_base):
     """ Instrument plugin class for a OD viewer.
@@ -24,7 +29,7 @@ class DAQ_0DViewer_Pfeiffer_Omnicontrol(DAQ_Viewer_base):
 
     """
     params = comon_parameters+[
-        {'title': 'COM port :', 'name': 'com_port', 'type': 'str'}
+        {'title': 'COM port :', 'name': 'com_port', 'type': 'list', 'limits': get_com_ports()}
         ]
 
     def ini_attributes(self):
@@ -34,6 +39,7 @@ class DAQ_0DViewer_Pfeiffer_Omnicontrol(DAQ_Viewer_base):
 
     def ini_detector(self, controller=None):
         """Detector communication initialization"""
+        self.settings.child('com_port').setLimits(get_com_ports())
         if self.is_master:
             self.port=self.settings.child('com_port').value()
             self.controller = Omnicontrol(self.port)
